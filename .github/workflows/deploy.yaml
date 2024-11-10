@@ -1,0 +1,36 @@
+name: Deploy Multidocker
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Build React in Dev & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker build -t dayfa1r/react-test -f ./client/Dockerfile.dev ./client
+      - run: docker run -e CI=true dayfa1r/react-test npm test
+  
+  build:
+    name: Build Production Images
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker build -t dayfa1r/multi-client ./client
+      - run: docker build -t dayfa1r/multi-nginx ./nginx
+      - run: docker build -t dayfa1r/multi-server ./server
+      - run: docker build -t dayfa1r/multi-worker ./worker
+  
+  push:
+    name: Push Images to DockerHub
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker push dayfa1r/multi-client
+      - run: docker push dayfa1r/multi-nginx
+      - run: docker push dayfa1r/multi-server
+      - run: docker push dayfa1r/multi-worker
